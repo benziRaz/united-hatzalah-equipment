@@ -9,6 +9,8 @@ import { DraftManager } from "@/components/draft-manager"
 import { Input } from "@/components/ui/input"
 import { Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toast } from "@/components/ui/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 
 export function EquipmentSelector() {
   const [cart, setCart] = useState<CartItem[]>([])
@@ -18,36 +20,92 @@ export function EquipmentSelector() {
   const [isSearching, setIsSearching] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
+  // Track the last added/updated/removed item for toast notifications
+  const [lastCartAction, setLastCartAction] = useState<{
+    type: 'add' | 'update' | 'remove' | 'load'
+    item?: CartItem
+    items?: CartItem[]
+  } | null>(null)
+
+  // Handle toast notifications after cart changes
+  useEffect(() => {
+    if (!lastCartAction) return
+
+    switch (lastCartAction.type) {
+      case 'add':
+        if (lastCartAction.item) {
+          toast({
+            title: "פריט נוסף לסל",
+            description: `${lastCartAction.item.name}: ${lastCartAction.item.quantity} יחידות`,
+            variant: "default",
+            action: <ToastAction altText="הצג סל">הצג סל</ToastAction>,
+          })
+        }
+        break
+      case 'update':
+        if (lastCartAction.item) {
+          toast({
+            title: "הכמות עודכנה",
+            description: `${lastCartAction.item.name}: ${lastCartAction.item.quantity} יחידות`,
+            variant: "default",
+          })
+        }
+        break
+      case 'remove':
+        if (lastCartAction.item) {
+          toast({
+            title: "פריט הוסר מהסל",
+            description: `${lastCartAction.item.name} הוסר מהסל`,
+            variant: "destructive",
+          })
+        }
+        break
+      case 'load':
+        if (lastCartAction.items) {
+          toast({
+            title: "טיוטה נטענה",
+            description: `${lastCartAction.items.length} פריטים נטענו מהטיוטה`,
+            variant: "default",
+          })
+        }
+        break
+    }
+  }, [lastCartAction])
+
   const addToCart = (item: CartItem) => {
     setCart((prevCart) => {
-      // Check if item already exists in cart
       const existingItemIndex = prevCart.findIndex((cartItem) => cartItem.id === item.id)
 
       if (existingItemIndex >= 0) {
-        // Update existing item
         const newCart = [...prevCart]
         newCart[existingItemIndex] = item
+        setLastCartAction({ type: 'update', item })
         return newCart
       } else {
-        // Add new item
+        setLastCartAction({ type: 'add', item })
         return [...prevCart, item]
       }
     })
   }
 
   const removeFromCart = (itemId: string) => {
+    const itemToRemove = cart.find((item) => item.id === itemId)
     setCart((prevCart) => prevCart.filter((item) => item.id !== itemId))
+    if (itemToRemove) {
+      setLastCartAction({ type: 'remove', item: itemToRemove })
+    }
   }
 
   const updateCartItem = (updatedItem: CartItem) => {
     setCart((prevCart) => prevCart.map((item) => (item.id === updatedItem.id ? updatedItem : item)))
+    setLastCartAction({ type: 'update', item: updatedItem })
   }
 
   const loadDraft = (items: CartItem[]) => {
     setCart(items)
+    setLastCartAction({ type: 'load', items })
   }
 
-  // פונקציה לחיפוש פריטים
   const searchItems = (query: string) => {
     if (!query.trim()) {
       setIsSearching(false)
@@ -59,8 +117,6 @@ export function EquipmentSelector() {
     const normalizedQuery = query.trim().toLowerCase()
 
     const results: EquipmentItem[] = []
-
-    // חיפוש בכל הקטגוריות
     equipmentCategories.forEach((category) => {
       const categoryResults = category.items.filter((item) => item.name.toLowerCase().includes(normalizedQuery))
       results.push(...categoryResults)
@@ -69,7 +125,6 @@ export function EquipmentSelector() {
     setSearchResults(results)
   }
 
-  // עדכון תוצאות החיפוש כאשר שורת החיפוש משתנה
   useEffect(() => {
     searchItems(searchQuery)
   }, [searchQuery])
@@ -85,10 +140,8 @@ export function EquipmentSelector() {
   return (
     <div>
       <DraftManager items={cart} loadDraft={loadDraft} />
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="lg:col-span-2">
-          {/* שורת חיפוש צמודה */}
           <div className="sticky-search animate-fade-in">
             <div className="relative">
               <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -114,7 +167,6 @@ export function EquipmentSelector() {
           </div>
 
           {isSearching ? (
-            // תצוגת תוצאות חיפוש
             <div className="space-y-4 animate-fade-in">
               <h2 className="text-lg font-medium flex items-center gap-2">
                 <span className="gradient-text">תוצאות חיפוש:</span>
@@ -135,14 +187,17 @@ export function EquipmentSelector() {
               ) : (
                 <div className="text-center text-muted-foreground py-12 bg-muted/50 rounded-lg border border-dashed">
                   <p className="mb-2">לא נמצאו פריטים התואמים לחיפוש.</p>
-                  <Button variant="outline" size="sm" onClick={clearSearch}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearSearch}
+                  >
                     נקה חיפוש
                   </Button>
                 </div>
               )}
             </div>
           ) : (
-            // תצוגת קטגוריות רגילה
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <div className="category-tabs">
                 <div className="overflow-x-auto pb-2">

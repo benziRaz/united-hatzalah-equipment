@@ -29,6 +29,53 @@ export function CategoryTab({ category, cart, addToCart }: CategoryTabProps) {
     return cartItem ? cartItem.quantity : 0
   }
 
+  // פונקציה להוספת פריט לסל או עדכון כמות אם כבר קיים
+  const addOrUpdateCartItem = (itemId: string, quantityToAdd: number) => {
+    const item = category.items.find((item) => item.id === itemId)
+    if (!item) return
+
+    const cartItem = cart.find((item) => item.id === itemId)
+
+    // אם הפריט כבר קיים בסל
+    if (cartItem) {
+      // חישוב הכמות החדשה (הקיימת + התוספת)
+      const newQuantity = cartItem.quantity + quantityToAdd
+
+      // בדיקה שלא חורגים מהכמות המקסימלית
+      if (newQuantity <= item.maxQuantity) {
+        // עדכון הפריט הקיים עם הכמות החדשה
+        const updatedItem: CartItem = {
+          ...cartItem,
+          quantity: newQuantity,
+        }
+        addToCart(updatedItem)
+      }
+    } else {
+      // אם הפריט לא קיים בסל, הוסף אותו
+      const newCartItem: CartItem = {
+        ...item,
+        quantity: quantityToAdd,
+        reason: reasons[itemId],
+        size: sizes[itemId],
+      }
+      addToCart(newCartItem)
+    }
+
+    // הצג אנימציית הוספה
+    setAddedItems({
+      ...addedItems,
+      [itemId]: true,
+    })
+
+    // איפוס אנימציה אחרי השהייה
+    setTimeout(() => {
+      setAddedItems({
+        ...addedItems,
+        [itemId]: false,
+      })
+    }, 1500)
+  }
+
   const handleQuantityChange = (itemId: string, change: number) => {
     const item = category.items.find((item) => item.id === itemId)
     if (!item) return
@@ -37,13 +84,12 @@ export function CategoryTab({ category, cart, addToCart }: CategoryTabProps) {
     const cartQuantity = getItemQuantityInCart(itemId)
     const totalQuantity = currentQuantity + cartQuantity
 
-    // אם זו לחיצה על פלוס והכמות המבוקשת תקינה, הוסף ישירות לסל
+    // אם זו לחיצה על פלוס והכמות המבוקשת תקינה
     if (change > 0 && totalQuantity < item.maxQuantity) {
       // בדוק אם יש דרישות נוספות שצריך למלא
       if ((item.requiresReason && !reasons[itemId]) || (item.requiresSize && !sizes[itemId])) {
         // אם יש דרישות שלא מולאו, רק הגדל את הכמות בתיבה
         let newQuantity = currentQuantity + change
-        if (newQuantity < 0) newQuantity = 0
         if (totalQuantity + change > item.maxQuantity) {
           newQuantity = item.maxQuantity - cartQuantity
           if (newQuantity < 0) newQuantity = 0
@@ -55,31 +101,19 @@ export function CategoryTab({ category, cart, addToCart }: CategoryTabProps) {
         })
       } else {
         // אם כל הדרישות מולאו, הוסף ישירות לסל
-        const cartItem: CartItem = {
-          ...item,
-          quantity: 1, // מוסיף יחידה אחת בכל לחיצה
-          reason: reasons[itemId],
-          size: sizes[itemId],
-        }
+        addOrUpdateCartItem(itemId, 1) // מוסיף יחידה אחת בכל לחיצה
 
-        addToCart(cartItem)
-
-        // הצג אנימציית הוספה
-        setAddedItems({
-          ...addedItems,
-          [itemId]: true,
+        // איפוס הכמות בתיבה
+        setQuantities({
+          ...quantities,
+          [itemId]: 0,
         })
-
-        // איפוס אנימציה אחרי השהייה
-        setTimeout(() => {
-          setAddedItems({
-            ...addedItems,
-            [itemId]: false,
-          })
-        }, 1500)
       }
+    } else if (change < 0 && cartQuantity > 0) {
+      // אם זו לחיצה על מינוס ויש פריטים בסל, הורד מהסל
+      addOrUpdateCartItem(itemId, -1) // מוריד יחידה אחת בכל לחיצה
     } else {
-      // אם זו לחיצה על מינוס, רק עדכן את הכמות בתיבה
+      // אחרת, עדכן את הכמות בתיבה
       let newQuantity = currentQuantity + change
       if (newQuantity < 0) newQuantity = 0
       if (totalQuantity + change > item.maxQuantity) {
@@ -115,28 +149,8 @@ export function CategoryTab({ category, cart, addToCart }: CategoryTabProps) {
     const quantity = quantities[itemId] || 0
     if (quantity <= 0) return
 
-    const cartItem: CartItem = {
-      ...item,
-      quantity,
-      reason: reasons[itemId],
-      size: sizes[itemId],
-    }
-
-    addToCart(cartItem)
-
-    // Show added animation
-    setAddedItems({
-      ...addedItems,
-      [itemId]: true,
-    })
-
-    // Reset animation after delay
-    setTimeout(() => {
-      setAddedItems({
-        ...addedItems,
-        [itemId]: false,
-      })
-    }, 1500)
+    // השתמש בפונקציה החדשה להוספה/עדכון בסל
+    addOrUpdateCartItem(itemId, quantity)
 
     // Reset quantity after adding to cart
     setQuantities({
@@ -254,7 +268,7 @@ export function CategoryTab({ category, cart, addToCart }: CategoryTabProps) {
                     variant="outline"
                     size="icon"
                     onClick={() => handleQuantityChange(item.id, -1)}
-                    disabled={currentQuantity <= 0}
+                    disabled={currentQuantity <= 0 && cartQuantity <= 0}
                     className="h-8 w-8 rounded-full"
                   >
                     <MinusCircle className="h-4 w-4" />
@@ -279,7 +293,7 @@ export function CategoryTab({ category, cart, addToCart }: CategoryTabProps) {
                     variant="outline"
                     size="icon"
                     onClick={() => handleQuantityChange(item.id, 1)}
-                    disabled={currentQuantity >= remainingQuantity}
+                    disabled={currentQuantity >= remainingQuantity || remainingQuantity <= 0}
                     className="h-8 w-8 rounded-full"
                   >
                     <PlusCircle className="h-4 w-4" />
