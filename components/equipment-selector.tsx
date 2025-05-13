@@ -22,6 +22,9 @@ export function EquipmentSelector() {
   const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const observerRef = useRef<IntersectionObserver | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const tabsListRef = useRef<HTMLDivElement>(null)
+  const [isScrolling, setIsScrolling] = useState(false)
+  const [visibleCategories, setVisibleCategories] = useState<string[]>([])
 
   const addToCart = (item: CartItem) => {
     setCart((prevCart) => {
@@ -120,31 +123,135 @@ export function EquipmentSelector() {
     }
   }
 
-  // גלילה לקטגוריה כאשר לוחצים על לשונית
+  // פונקציה משופרת לגלילה לקטגוריה
   const scrollToCategory = (categoryId: string) => {
+    // מניעת גלילה כפולה
+    if (isScrolling) return
+    setIsScrolling(true)
+
+    // עדכון הלשונית הפעילה
+    setActiveTab(categoryId)
+
+    // מצא את אלמנט הקטגוריה
     const categoryElement = categoryRefs.current[categoryId]
-    if (categoryElement) {
-      // עדכון הלשונית הפעילה
-      setActiveTab(categoryId)
+    if (!categoryElement || !scrollContainerRef.current) {
+      setIsScrolling(false)
+      return
+    }
 
-      // הוספת אפקט הדגשה זמני לקטגוריה
-      categoryElement.classList.add("active")
+    // חישוב המיקום לגלילה
+    const containerTop = scrollContainerRef.current.getBoundingClientRect().top
+    const elementTop = categoryElement.getBoundingClientRect().top
+    const offset = 120 // מרווח מהחלק העליון
 
-      // הסרת האפקט אחרי זמן קצר
-      setTimeout(() => {
-        categoryElement.classList.remove("active")
-      }, 1000)
+    // חישוב המיקום היחסי לגלילה
+    const scrollPosition = scrollContainerRef.current.scrollTop + (elementTop - containerTop) - offset
 
-      // גלילה לקטגוריה עם מרווח מותאם
-      const offset = 120 // מרווח מהחלק העליון
-      const elementPosition = categoryElement.getBoundingClientRect().top + window.pageYOffset
-      const offsetPosition = elementPosition - offset
+    // גלילה למיקום המחושב
+    scrollContainerRef.current.scrollTo({
+      top: scrollPosition,
+      behavior: "smooth",
+    })
 
-      // גלילה למיקום המחושב
-      scrollContainerRef.current?.scrollTo({
-        top: offsetPosition - scrollContainerRef.current.offsetTop,
-        behavior: "smooth",
-      })
+    // הוספת אפקט הדגשה זמני לקטגוריה
+    categoryElement.classList.add("category-highlight")
+
+    // הסרת האפקט והדגל אחרי זמן קצר
+    setTimeout(() => {
+      categoryElement.classList.remove("category-highlight")
+      setIsScrolling(false)
+    }, 1000)
+
+    // גלילת הלשונית למרכז אם היא לא נראית
+    setTimeout(() => {
+      const tabElement = document.querySelector(`[data-tab-value="${categoryId}"]`)
+      if (tabElement && tabsListRef.current) {
+        tabElement.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "center",
+        })
+      }
+    }, 100)
+  }
+
+  // פונקציה לבדיקת נראות הקטגוריות
+  const checkCategoryVisibility = () => {
+    if (!scrollContainerRef.current || isScrolling) return
+
+    const containerRect = scrollContainerRef.current.getBoundingClientRect()
+    const containerTop = containerRect.top
+    const containerHeight = containerRect.height
+    const containerMiddle = containerTop + containerHeight * 0.3 // נקודת האמצע עם הטיה כלפי מעלה
+
+    // בדיקת כל הקטגוריות
+    const visibleCats: string[] = []
+    let mostVisibleCategory = { id: activeTab, visibility: 0 }
+
+    Object.entries(categoryRefs.current).forEach(([categoryId, element]) => {
+      if (!element) return
+
+      const elementRect = element.getBoundingClientRect()
+      const elementTop = elementRect.top
+      const elementBottom = elementRect.bottom
+      const elementHeight = elementRect.height
+
+      // חישוב כמה מהקטגוריה נראה
+      const visibleTop = Math.max(elementTop, containerTop)
+      const visibleBottom = Math.min(elementBottom, containerTop + containerHeight)
+      const visibleHeight = Math.max(0, visibleBottom - visibleTop)
+      const visibilityRatio = visibleHeight / elementHeight
+
+      // בדיקה אם הקטגוריה נראית
+      if (visibilityRatio > 0) {
+        visibleCats.push(categoryId)
+
+        // בדיקה אם הקטגוריה נמצאת באזור האמצע
+        const elementMiddle = elementTop + elementHeight / 2
+        const distanceFromMiddle = Math.abs(elementMiddle - containerMiddle)
+
+        // שיפור הזיהוי לקטגוריות בעייתיות
+        let adjustedVisibility = visibilityRatio
+
+        // מתן עדיפות לקטגוריות שנמצאות קרוב לאמצע
+        adjustedVisibility = adjustedVisibility * (1 - distanceFromMiddle / containerHeight)
+
+        // התאמות מיוחדות לקטגוריות בעייתיות
+        if (categoryId === "oxygen" || categoryId === "special") {
+          // הגדלת המשקל של קטגוריות בעייתיות כשהן באזור הנראות
+          if (elementTop < containerMiddle && elementBottom > containerMiddle) {
+            adjustedVisibility *= 1.5
+          }
+        }
+
+        // עדכון הקטגוריה הנראית ביותר
+        if (adjustedVisibility > mostVisibleCategory.visibility) {
+          mostVisibleCategory = { id: categoryId, visibility: adjustedVisibility }
+        }
+      }
+    })
+
+    // עדכון הקטגוריות הנראות
+    setVisibleCategories(visibleCats)
+
+    // עדכון הלשונית הפעילה אם יש שינוי
+    if (mostVisibleCategory.id !== activeTab && mostVisibleCategory.visibility > 0.1) {
+      setActiveTab(mostVisibleCategory.id)
+
+      // גלילת הלשונית למרכז אם היא לא נראית
+      const tabElement = document.querySelector(`[data-tab-value="${mostVisibleCategory.id}"]`)
+      if (tabElement && tabsListRef.current) {
+        const tabRect = tabElement.getBoundingClientRect()
+        const containerRect = tabsListRef.current.getBoundingClientRect()
+
+        if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
+          tabElement.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+            inline: "center",
+          })
+        }
+      }
     }
   }
 
@@ -152,72 +259,29 @@ export function EquipmentSelector() {
   useEffect(() => {
     if (isSearching) return
 
-    // ניקוי Observer קודם אם קיים
-    if (observerRef.current) {
-      observerRef.current.disconnect()
-    }
-
-    // יצירת Observer חדש
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        // מצא את הקטגוריה עם הנראות הגבוהה ביותר
-        const visibleEntries = entries.filter((entry) => entry.isIntersecting)
-
-        if (visibleEntries.length > 0) {
-          // מיון לפי יחס הנראות (גבוה לנמוך)
-          visibleEntries.sort((a, b) => b.intersectionRatio - a.intersectionRatio)
-
-          // קבל את הקטגוריה עם הנראות הגבוהה ביותר
-          const mostVisibleEntry = visibleEntries[0]
-          const categoryId = mostVisibleEntry.target.getAttribute("data-category-id")
-
-          if (categoryId && categoryId !== activeTab) {
-            // עדכון הלשונית הפעילה
-            setActiveTab(categoryId)
-
-            // גלילה אל הלשונית המתאימה אם היא מחוץ לתצוגה
-            const tabsContainer = document.querySelector(".category-tabs .overflow-x-auto")
-            const tabElement = document.querySelector(`[data-tab-value="${categoryId}"]`)
-
-            if (tabElement && tabsContainer) {
-              // בדיקה אם הלשונית נמצאת מחוץ לתצוגה
-              const tabRect = tabElement.getBoundingClientRect()
-              const containerRect = tabsContainer.getBoundingClientRect()
-
-              if (tabRect.left < containerRect.left || tabRect.right > containerRect.right) {
-                // גלילה אל הלשונית
-                tabElement.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
-              }
-
-              // הדגשת הלשונית הפעילה עם אנימציה
-              tabElement.classList.add("tab-active-pulse")
-              setTimeout(() => {
-                tabElement.classList.remove("tab-active-pulse")
-              }, 1000)
-            }
-          }
+    // הוספת מאזין לאירוע גלילה
+    const container = scrollContainerRef.current
+    if (container) {
+      const handleScroll = () => {
+        if (!isScrolling) {
+          checkCategoryVisibility()
         }
-      },
-      {
-        root: null, // viewport
-        rootMargin: "-5% 0px -70% 0px", // מרווח מהשוליים מותאם
-        threshold: [0.05, 0.1, 0.2, 0.3, 0.4, 0.5], // סף נראות מותאם
-      },
-    )
-
-    // הוספת כל הקטגוריות ל-Observer
-    Object.values(categoryRefs.current).forEach((ref) => {
-      if (ref) {
-        observerRef.current?.observe(ref)
       }
-    })
 
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect()
+      container.addEventListener("scroll", handleScroll)
+      return () => {
+        container.removeEventListener("scroll", handleScroll)
       }
     }
-  }, [activeTab, isSearching])
+  }, [isSearching, isScrolling, activeTab])
+
+  // בדיקה ראשונית של נראות הקטגוריות
+  useEffect(() => {
+    if (!isSearching && !isScrolling) {
+      // בדיקה ראשונית אחרי טעינת הדף
+      setTimeout(checkCategoryVisibility, 500)
+    }
+  }, [isSearching, isScrolling])
 
   // פונקציה לזיהוי הגעה לסוף הרשימה והצגת כפתור חזרה למעלה
   useEffect(() => {
@@ -252,14 +316,63 @@ export function EquipmentSelector() {
   // פונקציה לגלילה לתחילת הרשימה
   const scrollToTop = () => {
     if (scrollContainerRef.current) {
+      // מניעת גלילה כפולה
+      if (isScrolling) return
+      setIsScrolling(true)
+
       scrollContainerRef.current.scrollTo({
         top: 0,
         behavior: "smooth",
       })
+
       // עדכון הלשונית הפעילה
       setActiveTab(equipmentCategories[0].id)
+
+      // איפוס דגל הגלילה אחרי זמן קצר
+      setTimeout(() => {
+        setIsScrolling(false)
+      }, 1000)
     }
   }
+
+  // הצגת טיפ לשמירת טיוטה כאשר יש פריטים בסל אך אין טיוטה שמורה
+  useEffect(() => {
+    // בדיקה אם יש פריטים בסל
+    if (cart.length > 0) {
+      // בדיקה אם אין טיוטה שמורה
+      const hasDraft = localStorage.getItem("equipmentDraft") !== null
+
+      if (!hasDraft) {
+        // הצג טיפ לשמירת טיוטה אחרי 5 שניות
+        const timer = setTimeout(() => {
+          toast({
+            title: "טיפ שימושי",
+            description: "מומלץ לשמור את הסל כטיוטה כדי שתוכל לחזור אליו בפעם הבאה שתזדקק לציוד",
+            variant: "default",
+            action: (
+              <ToastAction
+                altText="שמור טיוטה"
+                onClick={() => {
+                  localStorage.setItem("equipmentDraft", JSON.stringify(cart))
+                  localStorage.setItem("equipmentDraftDate", new Date().toISOString())
+                  toast({
+                    title: "הטיוטה נשמרה",
+                    description: "הסל נשמר בהצלחה כטיוטה",
+                    variant: "default",
+                  })
+                }}
+              >
+                שמור טיוטה
+              </ToastAction>
+            ),
+            duration: 10000, // 10 שניות
+          })
+        }, 5000)
+
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [cart])
 
   return (
     <div>
@@ -322,16 +435,15 @@ export function EquipmentSelector() {
             </div>
           ) : (
             // תצוגת קטגוריות רציפה עם Tabs
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs value={activeTab} onValueChange={(value) => scrollToCategory(value)} className="w-full">
               {/* לשוניות קטגוריות */}
               <div className="category-tabs">
-                <div className="overflow-x-auto pb-2">
+                <div ref={tabsListRef} className="overflow-x-auto pb-2">
                   <TabsList className="flex flex-nowrap h-auto mb-4 w-max min-w-full bg-muted/50 p-1">
                     {equipmentCategories.map((category) => (
                       <TabsTrigger
                         key={category.id}
                         value={category.id}
-                        onClick={() => scrollToCategory(category.id)}
                         className="mb-1 text-xs sm:text-sm whitespace-nowrap tab-highlight transition-all"
                         data-tab-value={category.id}
                       >
@@ -352,9 +464,11 @@ export function EquipmentSelector() {
                 {equipmentCategories.map((category) => (
                   <div
                     key={category.id}
-                    ref={(el) => (categoryRefs.current[category.id] = el)}
+                    ref={(el) => {
+                      if (el) categoryRefs.current[category.id] = el
+                    }}
                     data-category-id={category.id}
-                    className={`scroll-mt-32 category-section ${activeTab === category.id ? "active-category" : ""}`}
+                    className={`category-section ${activeTab === category.id ? "active-category" : ""}`}
                     id={`category-${category.id}`}
                   >
                     <h2 className="text-xl font-semibold mb-4 gradient-text category-title">{category.name}</h2>

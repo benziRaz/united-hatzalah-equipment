@@ -275,6 +275,7 @@
   border-bottom: 1px dashed hsl(var(--border));
   position: relative;
   scroll-margin-top: 150px;
+  transition: all 0.3s ease;
 }
 
 .category-section:last-child {
@@ -291,13 +292,40 @@
 .active-category::before {
   content: "";
   position: absolute;
-  left: -10px;
+  right: -15px;
   top: 0;
   height: 100%;
-  width: 4px;
+  width: 5px;
   background: hsl(var(--primary));
   border-radius: 2px;
   opacity: 0.7;
+}
+
+/* התאמות מיוחדות לקטגוריות בעייתיות */
+#category-oxygen.active-category::before,
+#category-special.active-category::before {
+  right: -15px;
+  width: 7px;
+  background: hsl(var(--primary));
+  opacity: 0.9;
+  box-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+}
+
+/* אנימציית הדגשה לקטגוריה בעת גלילה */
+@keyframes highlightCategory {
+  0% {
+    background-color: transparent;
+  }
+  30% {
+    background-color: hsl(var(--primary) / 0.1);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.category-highlight {
+  animation: highlightCategory 1.5s ease-out;
 }
 
 /* שיפור נראות הלשוניות */
@@ -309,7 +337,18 @@
 
 /* שיפור זיהוי קטגוריית ציוד חמצן ונשימה */
 #category-oxygen {
-  scroll-margin-top: 150px;
+  scroll-margin-top: 170px;
+  min-height: 300px;
+  padding-top: 10px;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+}
+
+/* שיפור זיהוי קטגוריית ציוד מיוחד */
+#category-special {
+  scroll-margin-top: 170px;
+  min-height: 300px;
+  padding-top: 10px;
+  border-top: 1px solid hsl(var(--border) / 0.5);
 }
 
 /* הוספת סגנון לאזור הגלילה */
@@ -461,4 +500,17 @@
 .tab-highlight[data-state="active"] {
   background-color: hsl(var(--primary) / 0.15);
   font-weight: 500;
+}
+
+/* עיצוב הודעות Toast */
+.toast-container {
+  --toast-background: hsl(var(--background));
+  --toast-border: hsl(var(--border));
+  --toast-text: hsl(var(--foreground));
+}
+
+.dark .toast-container {
+  --toast-background: hsl(var(--card));
+  --toast-border: hsl(var(--border));
+  --toast-text: hsl(var(--card-foreground));
 }
