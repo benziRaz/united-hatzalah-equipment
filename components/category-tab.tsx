@@ -11,6 +11,7 @@ import type { EquipmentCategory, CartItem } from "@/lib/equipment-data"
 import { PlusCircle, MinusCircle, ShoppingCart, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import Image from "next/image"
 
 interface CategoryTabProps {
   category: EquipmentCategory
@@ -218,6 +219,20 @@ export function CategoryTab({ category, cart, addToCart }: CategoryTabProps) {
                     מקסימום: {item.maxQuantity}
                   </Badge>
                 </div>
+
+                {/* הצגת תמונת המוצר אם קיימת */}
+                {item.imageUrl && (
+                  <div className="mt-2 flex justify-center">
+                    <div className="relative h-32 w-full max-w-[200px]">
+                      <Image
+                        src={item.imageUrl || "/placeholder.svg"}
+                        alt={item.name}
+                        fill
+                        className="object-contain rounded-md"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {cartQuantity > 0 && (
                   <div className="flex items-center gap-2 text-xs sm:text-sm text-primary animate-fade-in">

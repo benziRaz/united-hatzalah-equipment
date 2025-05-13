@@ -16,7 +16,7 @@ export async function generatePDF(
   volunteerData: VolunteerData,
   items: CartItem[],
   sendEmail = true,
-  attachPDF = true, // פרמטר זה לא בשימוש יותר בגלל מגבלת הגודל
+  attachPDF = true, // פרמטר זה לא בשימוש יותר בגלל מגבלות טכניות
   notes?: string,
 ): Promise<void> {
   // יצירת אלמנט HTML זמני
@@ -183,29 +183,21 @@ export async function generatePDF(
         const emailResult = await sendOrderEmail(volunteerData, items, notes)
 
         if (!emailResult.success) {
-          // אם שליחת המייל נכשלה, הצג הודעה למשתמש אבל אל תפסיק את התהליך
           console.warn("Email sending failed:", emailResult.message)
-
-          // אם אנחנו בדפדפן, הצג התראה
           if (typeof window !== "undefined") {
             alert(`הערה: ${emailResult.message} הקובץ PDF נוצר בהצלחה.`)
           }
-
-          // שמירת סטטוס המייל ב-sessionStorage
           sessionStorage.setItem("emailStatus", "failed")
         } else {
-          // שמירת סטטוס המייל ב-sessionStorage
           sessionStorage.setItem("emailStatus", "success")
+          // תמיד מגדירים שה-PDF לא צורף כי אנחנו לא מצרפים אותו יותר
+          sessionStorage.setItem("pdfAttached", "false")
         }
       } catch (error) {
         console.error("Error sending email:", error)
-
-        // אם אנחנו בדפדפן, הצג התראה
         if (typeof window !== "undefined") {
           alert("הערה: שליחת המייל נכשלה, אך קובץ ה-PDF נוצר בהצלחה.")
         }
-
-        // שמירת סטטוס המייל ב-sessionStorage
         sessionStorage.setItem("emailStatus", "failed")
       }
     }

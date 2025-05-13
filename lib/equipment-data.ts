@@ -7,6 +7,7 @@ export interface EquipmentItem {
   requiresReason?: boolean
   requiresImage?: boolean
   requiresSize?: boolean
+  imageUrl?: string // הוספת שדה לתמונת המוצר
 }
 
 export interface EquipmentCategory {
@@ -23,7 +24,7 @@ export const equipmentCategories: EquipmentCategory[] = [
       { id: "rubber-tourniquet", name: "חסם עורקים גומי", category: "bandages", maxQuantity: 2 },
       { id: "bandaid", name: "פלסטר", category: "bandages", maxQuantity: 10 },
       { id: "gauze-roll", name: "אגד גזה (גלילים)", category: "bandages", maxQuantity: 5 },
-      { id: "sterile-pad-10x10", name: "פד גזה סטרילי 10x10", category: "bandages", maxQuantity: 20 },
+      { id: "sterile-pad-10x10", name: "פד גזה סטרילי 10×10", category: "bandages", maxQuantity: 20 },
       { id: "asherman-bandage", name: "תחבושת אשרמן", category: "bandages", maxQuantity: 1 },
       { id: "emergency-blanket", name: "שמיכת מילוט", category: "bandages", maxQuantity: 1 },
       { id: "leukoplast", name: "לויקופלסט", category: "bandages", maxQuantity: 1 },
@@ -34,7 +35,7 @@ export const equipmentCategories: EquipmentCategory[] = [
       { id: "personal-bandage", name: "תחבושת אישית", category: "bandages", maxQuantity: 3 },
       { id: "triangular-bandage", name: "משולש לקיבוע", category: "bandages", maxQuantity: 4 },
       { id: "israeli-bandage", name: "תחבושת ישראלית", category: "bandages", maxQuantity: 1 },
-      { id: "sterile-pad-5x5", name: "פד גזה סטרילי 5x5", category: "bandages", maxQuantity: 10 },
+      { id: "sterile-pad-5x5", name: "פד גזה סטרילי 5×5", category: "bandages", maxQuantity: 10 },
     ],
   },
   {
@@ -69,15 +70,34 @@ export const equipmentCategories: EquipmentCategory[] = [
     items: [
       { id: "defi-razor", name: "סכין גילוח לדפי'", category: "defibrillator", maxQuantity: 1 },
       { id: "defi-battery-v9", name: "סוללה V9 לדפי", category: "defibrillator", maxQuantity: 1 },
-      { id: "defi-pads-g3", name: "מדבקות לדפיברילטור G3", category: "defibrillator", maxQuantity: 1 },
+      {
+        id: "defi-pads-g3",
+        name: "מדבקות לדפיברילטור G3",
+        category: "defibrillator",
+        maxQuantity: 1,
+        imageUrl: "/images/defi-pads-g3.png",
+      },
       {
         id: "defi-pads-neon-coden",
         name: "מדבקות לדפיברילטור - ניאון קודן",
         category: "defibrillator",
         maxQuantity: 1,
+        imageUrl: "/images/defi-pads-neon-coden.png",
       },
-      { id: "defi-pads-philips", name: "מדבקות לדפיברילטור - פיליפס", category: "defibrillator", maxQuantity: 1 },
-      { id: "defi-pads-lifeline", name: "מדבקות לדפיברילטור - לייפליין", category: "defibrillator", maxQuantity: 1 },
+      {
+        id: "defi-pads-philips",
+        name: "מדבקות לדפיברילטור - פיליפס",
+        category: "defibrillator",
+        maxQuantity: 1,
+        imageUrl: "/images/defi-pads-philips.png",
+      },
+      {
+        id: "defi-pads-lifeline",
+        name: "מדבקות לדפיברילטור - לייפליין",
+        category: "defibrillator",
+        maxQuantity: 1,
+        imageUrl: "/images/defi-pads-lifeline.png",
+      },
     ],
   },
   {

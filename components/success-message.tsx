@@ -3,12 +3,11 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, Mail, Download, Printer, HomeIcon, MessageSquare } from "lucide-react"
+import { CheckCircle, Mail, Download, Printer, HomeIcon, MessageSquare, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 
 export function SuccessMessage() {
   const [volunteerName, setVolunteerName] = useState("")
-  // הוסף משתנה state חדש לעקוב אחר סטטוס שליחת המייל
   const [emailSent, setEmailSent] = useState(true)
   const [notes, setNotes] = useState<string | null>(null)
 
@@ -34,6 +33,7 @@ export function SuccessMessage() {
 
     // ניקוי סטטוס המייל מה-sessionStorage
     sessionStorage.removeItem("emailStatus")
+    sessionStorage.removeItem("pdfAttached")
   }, [])
 
   const handlePrint = () => {
@@ -65,6 +65,13 @@ export function SuccessMessage() {
                 ? "פרטי ההזמנה נשלחו באופן אוטומטי לרכז הציוד האזורי. קובץ ה-PDF נשמר במכשיר שלך."
                 : "לא ניתן היה לשלוח את ההזמנה במייל. אנא צור קשר עם רכז הציוד באופן ידני."}
             </p>
+
+            {emailSent && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                <span>קובץ ה-PDF לא צורף למייל בשל מגבלות טכניות</span>
+              </div>
+            )}
           </div>
 
           {notes && notes.trim() && (
