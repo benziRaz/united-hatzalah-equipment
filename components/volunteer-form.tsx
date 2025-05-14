@@ -24,6 +24,9 @@ export function VolunteerForm() {
     volunteerId: false,
   })
 
+  // הוספת משתנה מצב לשמירת הודעת השגיאה המותאמת
+  const [volunteerIdError, setVolunteerIdError] = useState<string | null>(null)
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({
@@ -37,18 +40,44 @@ export function VolunteerForm() {
         ...prev,
         [name]: false,
       }))
+
+      // נקה את הודעת השגיאה המותאמת אם מדובר בשדה קוד כונן
+      if (name === "volunteerId") {
+        setVolunteerIdError(null)
+      }
     }
   }
 
+  // עדכון פונקציית validateForm כדי לבדוק את קוד הכונן
   const validateForm = () => {
     const newErrors = {
       firstName: !formData.firstName.trim(),
       lastName: !formData.lastName.trim(),
-      volunteerId: !formData.volunteerId.trim(),
+      volunteerId: false, // שינוי: לא מגדירים שגיאה כאן, אלא בודקים בנפרד
     }
 
     setErrors(newErrors)
-    return !Object.values(newErrors).some(Boolean)
+
+    // בדיקה שכל השדות הבסיסיים מלאים
+    if (newErrors.firstName || newErrors.lastName || !formData.volunteerId.trim()) {
+      if (!formData.volunteerId.trim()) {
+        setErrors((prev) => ({ ...prev, volunteerId: true }))
+      }
+      return false
+    }
+
+    // בדיקת תקינות קוד כונן
+    const validVolunteerIds = ["50", "939", "894", "912"]
+    const volunteerIdNum = Number.parseInt(formData.volunteerId)
+    const isInRange = volunteerIdNum >= 3300 && volunteerIdNum <= 3399
+
+    if (!validVolunteerIds.includes(formData.volunteerId) && !isInRange) {
+      setVolunteerIdError("אינך כונן המשתייך לסניף אלעד")
+      setErrors((prev) => ({ ...prev, volunteerId: true }))
+      return false
+    }
+
+    return true
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -112,7 +141,7 @@ export function VolunteerForm() {
               className={`transition-all ${errors.volunteerId ? "border-destructive shadow-sm shadow-destructive/10" : "focus:border-primary/50"}`}
               placeholder="הכנס קוד כונן"
             />
-            {errors.volunteerId && <p className="text-destructive text-sm">שדה חובה</p>}
+            {errors.volunteerId && <p className="text-destructive text-sm">{volunteerIdError || "שדה חובה"}</p>}
           </div>
         </CardContent>
         <CardFooter>
