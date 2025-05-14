@@ -104,7 +104,7 @@ export const equipmentCategories: EquipmentCategory[] = [
     id: "hygiene",
     name: "מניעת זיהומים והיגיינה",
     items: [
-      { id: "spongitta", name: "ספונג'טה", category: "hygiene", maxQuantity: 1 },
+      { id: "spongitta", name: "ספונג'טה", category: "hygiene", maxQuantity: 10 },
       { id: "hand-sanitizer", name: "ג'ל לחיטוי ידיים", category: "hygiene", maxQuantity: 1 },
       { id: "surgical-masks", name: "מסכות כירורגיות", category: "hygiene", maxQuantity: 10 },
       { id: "disinfectant-wipe", name: "מגבון אישי לחיטוי", category: "hygiene", maxQuantity: 5 },
