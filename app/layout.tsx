@@ -43,7 +43,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="he" dir="rtl">
+    <html lang="he" dir="rtl" suppressHydrationWarning>
       <body className={`${rubik.variable} font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="light">
           {children}
