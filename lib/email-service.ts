@@ -45,6 +45,37 @@ function createSimpleItemsList(items: CartItem[]): string {
   return orderItemsText
 }
 
+// פונקציה עם retry mechanism
+async function retryOperation<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 2,
+  delay: number = 1000,
+): Promise<T> {
+  let lastError: Error | null = null
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation()
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Unknown error")
+      console.warn(`Attempt ${attempt + 1} failed:`, lastError.message)
+
+      if (attempt < maxRetries) {
+        // המתן לפני ניסיון נוסף
+        await new Promise((resolve) => setTimeout(resolve, delay * (attempt + 1)))
+      }
+    }
+  }
+
+  throw lastError || new Error("Operation failed after retries")
+}
+
+// פונקציה לבדיקת חיבור לאינטרנט
+function isOnline(): boolean {
+  if (typeof window === "undefined") return true
+  return navigator.onLine
+}
+
 // פונקציה לשליחת מייל עם פורמט פשוט יותר
 export async function sendOrderEmail(
   volunteerData: VolunteerData,
@@ -53,6 +84,14 @@ export async function sendOrderEmail(
   pdfBase64?: string | null,
 ): Promise<{ success: boolean; message: string }> {
   try {
+    // בדיקת חיבור לאינטרנט
+    if (!isOnline()) {
+      return {
+        success: false,
+        message: "אין חיבור לאינטרנט. אנא בדוק את החיבור ונסה שנית.",
+      }
+    }
+
     // אתחול EmailJS עם המפתח הקבוע
     emailjs.init(EMAIL_CONFIG.publicKey)
 
@@ -76,8 +115,12 @@ export async function sendOrderEmail(
     // הוספת הודעה לגבי ה-PDF
     emailData.pdf_note = "* קובץ PDF נוצר אצל המתנדב ולא צורף למייל בשל מגבלות טכניות *"
 
-    // שליחת המייל - ללא צירוף ה-PDF
-    const response = await emailjs.send(EMAIL_CONFIG.serviceId, EMAIL_CONFIG.templateId, emailData)
+    // שליחת המייל עם retry mechanism
+    const response = await retryOperation(
+      () => emailjs.send(EMAIL_CONFIG.serviceId, EMAIL_CONFIG.templateId, emailData),
+      2, // 2 ניסיונות חוזרים
+      1500, // 1.5 שניות בין ניסיונות
+    )
 
     console.log("Email sent successfully:", response)
     return {
@@ -86,9 +129,23 @@ export async function sendOrderEmail(
     }
   } catch (error) {
     console.error("Failed to send email:", error)
+
+    // זיהוי סוג השגיאה
+    let errorMessage = "שגיאה לא ידועה"
+
+    if (error instanceof Error) {
+      if (error.message.includes("Failed to fetch") || error.message.includes("NetworkError")) {
+        errorMessage = "בעיית תקשורת עם שרת המייל. אנא בדוק את החיבור לאינטרנט."
+      } else if (error.message.includes("CORS")) {
+        errorMessage = "בעיית הרשאות. אנא נסה מדפדפן אחר."
+      } else {
+        errorMessage = error.message
+      }
+    }
+
     return {
       success: false,
-      message: `שגיאה בשליחת המייל: ${error instanceof Error ? error.message : "שגיאה לא ידועה"}`,
+      message: `שגיאה בשליחת המייל: ${errorMessage}`,
     }
   }
 }

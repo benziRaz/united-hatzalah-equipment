@@ -35,6 +35,13 @@ export function Cart({ items, updateItem, removeItem }: CartProps) {
       setIsSubmitting(true)
       setEmailStatus("sending")
 
+      // בדיקת חיבור לאינטרנט
+      if (!navigator.onLine) {
+        alert("אין חיבור לאינטרנט. אנא בדוק את החיבור ונסה שנית.")
+        setEmailStatus("error")
+        return
+      }
+
       // Get volunteer data
       const volunteerDataStr = sessionStorage.getItem("volunteerData")
       if (!volunteerDataStr) {
@@ -51,6 +58,23 @@ export function Cart({ items, updateItem, removeItem }: CartProps) {
       // Generate PDF and send email - always attach PDF (true)
       await generatePDF(volunteerData, items, true, true, notes)
 
+      // בדיקת סטטוס המייל
+      const emailStatus = sessionStorage.getItem("emailStatus")
+      
+      if (emailStatus === "failed") {
+        // המייל נכשל אבל ה-PDF נוצר
+        const shouldContinue = confirm(
+          "קובץ ה-PDF נוצר בהצלחה, אך שליחת המייל נכשלה.\n\n" +
+          "האם ברצונך להמשיך?\n" +
+          "(תוכל לשלוח את קובץ ה-PDF ידנית למנהל הציוד)"
+        )
+        
+        if (!shouldContinue) {
+          setEmailStatus("error")
+          return
+        }
+      }
+
       // Update email status
       setEmailStatus("success")
 
@@ -59,7 +83,21 @@ export function Cart({ items, updateItem, removeItem }: CartProps) {
     } catch (error) {
       console.error("Error submitting order:", error)
       setEmailStatus("error")
-      alert(`אירעה שגיאה: ${error instanceof Error ? error.message : "שגיאה לא ידועה"}. אנא נסה שנית.`)
+      
+      // הודעת שגיאה משופרת
+      let errorMessage = "אירעה שגיאה"
+      
+      if (error instanceof Error) {
+        if (error.message.includes("Failed to fetch")) {
+          errorMessage = "בעיית תקשורת. אנא בדוק את החיבור לאינטרנט ונסה שנית."
+        } else if (error.message.includes("quota")) {
+          errorMessage = "אין מספיק מקום באחסון. אנא פנה מקום ונסה שנית."
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
+      alert(`${errorMessage}\n\nאנא נסה שנית או פנה לתמיכה טכנית.`)
     } finally {
       setIsSubmitting(false)
     }
