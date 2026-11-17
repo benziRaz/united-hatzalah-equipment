@@ -9,12 +9,19 @@ interface VolunteerData {
   volunteerId: string
 }
 
-// הגדרות EmailJS קבועות - מוגדרות מראש במערכת
+// הגדרות EmailJS נטענות ממשתני סביבה (ראו .env.example).
+// חשוב: ב-Next.js יש להפנות ל-process.env.NEXT_PUBLIC_* ישירות כדי שהערכים יוטמעו בבנייה.
 const EMAIL_CONFIG = {
-  serviceId: "service_429z6xj",
-  templateId: "template_263uwdg",
-  publicKey: "mXibAReK_9fRLrck3",
-  coordinatorEmail: "equipment@unitedhatzalah.org",
+  serviceId: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID ?? "",
+  templateId: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID ?? "",
+  publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY ?? "",
+  // אופציונלי. מומלץ להגדיר את הנמען בתבנית ב-EmailJS עצמה ולא מהדפדפן,
+  // כדי שאי אפשר יהיה להשתמש בתבנית לשליחת מיילים לכתובות אחרות.
+  coordinatorEmail: process.env.NEXT_PUBLIC_COORDINATOR_EMAIL ?? "",
+}
+
+function isEmailConfigured(): boolean {
+  return Boolean(EMAIL_CONFIG.serviceId && EMAIL_CONFIG.templateId && EMAIL_CONFIG.publicKey)
 }
 
 // פונקציה ליצירת רשימת פריטים בפורמט טקסט פשוט
@@ -92,7 +99,15 @@ export async function sendOrderEmail(
       }
     }
 
-    // אתחול EmailJS עם המפתח הקבוע
+    if (!isEmailConfigured()) {
+      console.error("EmailJS is not configured. See .env.example.")
+      return {
+        success: false,
+        message: "שירות המייל לא מוגדר. אנא פנה למנהל המערכת.",
+      }
+    }
+
+    // אתחול EmailJS עם המפתח מהגדרות הסביבה
     emailjs.init(EMAIL_CONFIG.publicKey)
 
     // יצירת רשימת פריטים בפורמט טקסט פשוט
@@ -100,11 +115,15 @@ export async function sendOrderEmail(
 
     // הכנת נתוני המייל - עם משתנים מינימליים ופשוטים
     const emailData: Record<string, any> = {
-      to_email: EMAIL_CONFIG.coordinatorEmail,
       from_name: `${volunteerData.firstName} ${volunteerData.lastName}`,
       volunteer_id: volunteerData.volunteerId,
       order_date: new Date().toLocaleDateString("he-IL"),
       items_list: simpleItemsList, // משתנה פשוט יותר
+    }
+
+    // נמען מהדפדפן רק אם הוגדר במפורש (ברירת מחדל: הנמען נקבע בתבנית ב-EmailJS)
+    if (EMAIL_CONFIG.coordinatorEmail) {
+      emailData.to_email = EMAIL_CONFIG.coordinatorEmail
     }
 
     // הוספת הערות אם יש

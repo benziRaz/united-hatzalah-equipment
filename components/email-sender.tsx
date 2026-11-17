@@ -88,7 +88,7 @@ export function EmailSender({ pdfFile, volunteerName }: EmailSenderProps) {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="equipment@unitedhatzalah.org"
+                  placeholder="name@example.org"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   dir="ltr"

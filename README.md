@@ -23,11 +23,25 @@ Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, shadcn/ui, React Ho
 ## Run locally
 
 ```bash
-npm install --legacy-peer-deps
+npm install
+cp .env.example .env.local   # then fill in your EmailJS values
 npm run dev
 ```
 
-Open http://localhost:3000. The `--legacy-peer-deps` flag is needed because `react-day-picker@8` declares an older `date-fns` peer range.
+Open http://localhost:3000. Without the EmailJS values the app still runs, but sending an e-mail shows a clear "not configured" message.
+
+### E-mail configuration
+
+Create a free [EmailJS](https://www.emailjs.com/) service and template, then set in `.env.local`:
+
+| Variable | Meaning |
+|---|---|
+| `NEXT_PUBLIC_EMAILJS_SERVICE_ID` | Your EmailJS service ID |
+| `NEXT_PUBLIC_EMAILJS_TEMPLATE_ID` | Your EmailJS template ID |
+| `NEXT_PUBLIC_EMAILJS_PUBLIC_KEY` | Your EmailJS public key |
+| `NEXT_PUBLIC_COORDINATOR_EMAIL` | Optional. Better: set the recipient inside the EmailJS template |
+
+Security notes are in [SECURITY.md](SECURITY.md): restrict the allowed domains in EmailJS, and never put real secrets in `NEXT_PUBLIC_*` variables.
 
 ## Project layout
 
@@ -37,15 +51,15 @@ Open http://localhost:3000. The `--legacy-peer-deps` flag is needed because `rea
 | `components/` | Request form, equipment selector, cart, draft manager, UI components |
 | `lib/equipment-data.ts` | The equipment catalogue: add or change items here |
 | `lib/pdf-generator*.ts` | PDF generation for the request |
-| `lib/email-service.ts` | E-mail sending with retry |
+| `lib/email-service.ts` | E-mail sending with retry; reads its settings from environment variables |
 
 ## Adapting it to another organisation
 
-Edit the catalogue in `lib/equipment-data.ts`, set up your own EmailJS service and template, and update the coordinator address in `lib/email-service.ts`.
+Edit the catalogue in `lib/equipment-data.ts` and configure your own EmailJS service and template through the environment variables above. No code change is needed for the e-mail settings.
 
 ## Status
 
-Early-stage volunteer project. Issues and suggestions are welcome.
+Early-stage volunteer project. Issues and suggestions are welcome. Released under the [MIT License](LICENSE).
 
 ---
 
@@ -70,14 +84,15 @@ Early-stage volunteer project. Issues and suggestions are welcome.
 ### הרצה מקומית
 
 ```bash
-npm install --legacy-peer-deps
+npm install
+cp .env.example .env.local   # ממלאים את הגדרות EmailJS
 npm run dev
 ```
 
-פותחים את http://localhost:3000.
+פותחים את http://localhost:3000. בלי הגדרות EmailJS האפליקציה עולה, אבל שליחת מייל תציג הודעה שהשירות לא מוגדר.
 
 ### התאמה לארגון אחר
 
-עורכים את הקטלוג ב-`lib/equipment-data.ts`, פותחים שירות ותבנית משלכם ב-EmailJS, ומעדכנים את כתובת הרכז ב-`lib/email-service.ts`.
+עורכים את הקטלוג ב-`lib/equipment-data.ts`, פותחים שירות ותבנית משלכם ב-EmailJS ומגדירים אותם במשתני הסביבה שב-`.env.example`. אין צורך לשנות קוד. מומלץ להגדיר את הנמען בתבנית ב-EmailJS ולהגביל שם את הדומיינים המורשים (ראו SECURITY.md).
 
 </div>
